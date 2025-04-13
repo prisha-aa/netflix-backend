@@ -1,8 +1,11 @@
 import express from 'express';
-import { getMovies } from '../controllers/movieController.js';
+import { getMovieDetails, getMoviesByCategory, searchMovies } from '../controllers/movieController';
+
 
 const router = express.Router();
 
-router.get('/movies', getMovies);
+router.get("/category/:category",getMoviesByCategory)
+router.get('/:movieId', getMovieDetails);
+router.get('/search',searchMovies);
 
 export default router;

@@ -1,31 +1,73 @@
 import axios from 'axios';
 
-export const getMovies = async (req, res) => {
-  const { query, genre, year } = req.query;
-  const apiKey = process.env.TMDB_API_KEY;
+
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
+
+const fetchTMDBData = async (url, params = {}) => {
+  try {
+    const response = await axios.get(`https://api.themoviedb.org/3${url}`, {
+      params: {
+        api_key: TMDB_API_KEY,
+        language: 'en-US',
+        ...params,
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching TMDB data:", error);
+    throw error;
+  }
+};
+
+
+export const getMoviesByCategory = async (req, res) => {
+  const { category } = req.params;
+  const { page = 1, genreId } = req.query;
 
   try {
     let url = '';
-    const params = {
-      api_key: apiKey,
-      language: 'en-US',
-      page: 1,
-    };
+    let params = { page };
 
-    if (query) {
-      url = 'https://api.themoviedb.org/3/search/movie';
-      params.query = query;
-    } 
-    else {
-      url = 'https://api.themoviedb.org/3/discover/movie';
-      if (genre) params.with_genres = genre;
-      if (year) params.primary_release_year = year;
+    if (category === 'popular') {
+      url = '/movie/popular';
+    } else if (category === 'top-rated') {
+      url = '/movie/top_rated';
+    } else if (category === 'trending') {
+      url = '/trending/movie/day';
+    } else if (category === 'genre' && genreId) {
+      url = '/discover/movie';
+      params = { ...params, with_genres: genreId };
+    } else {
+      return res.status(400).json({ message: 'Invalid category' });
     }
 
-    const response = await axios.get(url, { params });
-    res.json(response.data.results);
-  } 
-  catch (err) {
-    res.status(500).json({ error: 'Failed to fetch movies', message: err.message });
+    const data = await fetchTMDBData(url, params);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch movies' });
+  }
+};
+
+export const getMovieDetails = async (req, res) => {
+  const { movieId } = req.params;
+  const url = `/movie/${movieId}`;
+
+  try {
+    const data = await fetchTMDBData(url);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch movie details' });
+  }
+};
+
+export const searchMovies = async (req, res) => {
+  const { query, page = 1 } = req.query;
+  const url = '/search/movie';
+
+  try {
+    const data = await fetchTMDBData(url, { query, page });
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to search movies' });
   }
 };
